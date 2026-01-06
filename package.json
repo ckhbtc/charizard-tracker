@@ -1,0 +1,19 @@
+{
+  "name": "charizard-tracker",
+  "version": "1.0.0",
+  "description": "Charizard card price tracker with retro UI, charting, and hourly price history.",
+  "main": "charizard_server.js",
+  "scripts": {
+    "start": "node charizard_server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "ejs": "^3.1.9",
+    "puppeteer": "^21.3.8",
+    "sqlite3": "^5.1.6",
+    "node-cron": "^3.0.3"
+  }
+}

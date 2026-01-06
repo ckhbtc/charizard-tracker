@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charizard Card Prices</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .range-btns { text-align: center; margin-bottom: 18px; }
+        .range-btns a { display: inline-block; margin: 0 8px; padding: 6px 16px; border-radius: 6px; background: #222; color: #FFD700; font-family: 'Press Start 2P', monospace; text-decoration: none; border: 2px solid #FFD700; font-size: 0.8em; }
+        .range-btns a.active, .range-btns a:hover { background: #FFD700; color: #222; }
+        .last-updated { text-align: center; margin: 32px 0 0 0; color: #FFD700; font-family: 'Press Start 2P', monospace; font-size: 0.9em; }
+        .card-chart canvas { width: 150px !important; height: 120px !important; }
+        .container.two-column {
+            max-width: 1100px;
+            min-height: 700px;
+            margin: 0 auto;
+            padding: 32px 0 0 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 90vh;
+        }
+        .card-list {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 4px;
+            padding: 0 18px;
+            box-sizing: border-box;
+        }
+        .card {
+            background: #2d1c0b;
+            border-radius: 10px;
+            box-shadow: 0 0 2px #FFD70044;
+            padding: 4px 6px;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            word-break: break-word;
+            margin: 0 auto;
+            min-height: 130px;
+            height: 130px;
+            width: 97%;
+            max-width: 420px;
+        }
+        .card-content {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .card-img, .card-details {
+            align-self: center;
+        }
+        .card-img {
+            width: 60px;
+            height: auto;
+            margin-right: 6px;
+            border-radius: 5px;
+            border: 2px solid #FFD700;
+            background: #fff;
+            flex-shrink: 0;
+        }
+        .card-details h2 {
+            font-size: 0.95em;
+            margin: 0 0 2px 0;
+            word-break: break-word;
+        }
+        .prices {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.9em;
+        }
+        .last-updated-bar {
+            margin: 8px 0 0 0;
+            font-size: 0.85em;
+            color: #FFD700;
+            background: #2d1c0b;
+            text-align: center;
+            border-radius: 6px;
+            padding: 2px 0 2px 0;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: 'Press Start 2P', monospace;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 0 4px #2d1c0b;
+        }
+        @media (max-width: 900px) {
+            .card-list {
+                grid-template-columns: 1fr;
+                padding: 0 4px;
+            }
+            .container.two-column {
+                display: block;
+                height: auto;
+            }
+            .card {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+        @media (max-width: 700px) {
+            .container.two-column {
+                max-width: 100vw;
+                padding: 0;
+                margin-top: 0;
+                margin-bottom: 0;
+                margin-left: auto;
+                margin-right: auto;
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                min-height: 100vh;
+            }
+            .card-list {
+                grid-template-columns: 1fr;
+                padding: 0 2px;
+                margin-top: 0;
+                margin-bottom: 0;
+                justify-items: center;
+            }
+            .card {
+                min-height: 90px;
+                height: auto;
+                padding: 2px 2px;
+                width: 96%;
+                max-width: 340px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .card-img {
+                width: 44px;
+                margin-right: 4px;
+            }
+            .card-details h2 {
+                font-size: 0.8em;
+            }
+            .prices {
+                font-size: 0.75em;
+            }
+            .last-updated-bar {
+                font-size: 0.7em;
+                padding: 1px 0 1px 0;
+                margin-bottom: 0;
+                margin-top: 6px;
+                text-align: center;
+            }
+            h1 {
+                font-size: 1.2em !important;
+                margin-top: 4px !important;
+                margin-bottom: 16px !important;
+            }
+        }
+        h1 {
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container two-column">
+        <h1 style="margin-bottom: 8px; font-size: 2.1em;">Charizard Card Prices</h1>
+        <div class="card-list">
+        <% cards.forEach(function(card, idx) { %>
+        <div class="card">
+            <div class="card-content">
+                <img src="<%= card.image %>" alt="<%= card.name %>" class="card-img">
+                <div class="card-details">
+                    <h2><%= shortName(card.name) %></h2>
+                    <ul class="prices">
+                        <li>Grade 9: <%= card.prices.grade_9 %></li>
+                        <li>Grade 9.5: <%= card.prices.grade_9_5 %></li>
+                        <li>Grade 10: <%= card.prices.grade_10 %></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <% }); %>
+        </div>
+        <% if (lastUpdated) { %>
+        <div class="last-updated-bar">Last Updated: <%= new Date(lastUpdated).toLocaleString() %></div>
+        <% } %>
+    </div>
+    <script>
+    <% cards.forEach(function(card, idx) { %>
+    (function() {
+      var h9 = <%- JSON.stringify(card.history9 || []) %>;
+      var h95 = <%- JSON.stringify(card.history95 || []) %>;
+      var h10 = <%- JSON.stringify(card.history10 || []) %>;
+      // Build a unified list of all timestamps
+      var allTimestamps = [].concat(
+        h9.map(function(h) { return h.timestamp; }),
+        h95.map(function(h) { return h.timestamp; }),
+        h10.map(function(h) { return h.timestamp; })
+      );
+      var uniqueTimestamps = [];
+      for (var i = 0; i < allTimestamps.length; i++) {
+        if (uniqueTimestamps.indexOf(allTimestamps[i]) === -1) {
+          uniqueTimestamps.push(allTimestamps[i]);
+        }
+      }
+      uniqueTimestamps.sort();
+      function priceAt(history, ts) {
+        for (var i = 0; i < history.length; i++) {
+          if (history[i].timestamp === ts) return history[i].price;
+        }
+        return null;
+      }
+      var data9 = uniqueTimestamps.map(function(ts) { return priceAt(h9, ts); });
+      var data95 = uniqueTimestamps.map(function(ts) { return priceAt(h95, ts); });
+      var data10 = uniqueTimestamps.map(function(ts) { return priceAt(h10, ts); });
+      var datasets = [];
+      for (var i = 0; i < data9.length; i++) { if (data9[i] !== null) { datasets.push({ label: 'Grade 9', data: data9, borderColor: '#FFD700', backgroundColor: 'rgba(255,215,0,0.2)', tension: 0.3, pointRadius: 0, borderWidth: 2 }); break; } }
+      for (var i = 0; i < data95.length; i++) { if (data95[i] !== null) { datasets.push({ label: 'Grade 9.5', data: data95, borderColor: '#FF5733', backgroundColor: 'rgba(255,87,51,0.2)', tension: 0.3, pointRadius: 0, borderWidth: 2 }); break; } }
+      for (var i = 0; i < data10.length; i++) { if (data10[i] !== null) { datasets.push({ label: 'Grade 10', data: data10, borderColor: '#33FF57', backgroundColor: 'rgba(51,255,87,0.2)', tension: 0.3, pointRadius: 0, borderWidth: 2 }); break; } }
+      new Chart(document.getElementById('chart-<%= idx %>'), {
+        type: 'line',
+        data: {
+          labels: uniqueTimestamps,
+          datasets: datasets
+        },
+        options: {
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              enabled: true,
+              callbacks: {
+                title: function(context) {
+                  var ts = context[0].label;
+                  return new Date(ts).toLocaleString();
+                },
+                label: function(context) {
+                  var grade = context.dataset.label;
+                  var price = context.parsed.y;
+                  return grade + ': $' + price;
+                }
+              }
+            }
+          },
+          scales: {
+            y: { display: false },
+            x: { display: false }
+          },
+          elements: {
+            point: { radius: 0 }
+          }
+        }
+      });
+    })();
+    <% }); %>
+    </script>
+</body>
+</html>
+
+<% function shortName(name) {
+  if (name === 'Charizard Pokemon Japanese Expansion Pack 1996') return 'Japanese 1996';
+  if (name === 'Charizard Pokemon Base Set 2') return 'Charizard Base Set 2';
+  if (name === 'Charizard Pokemon Base Set') return 'Charizard Base Set';
+  if (name === 'Charizard Pokemon Shadowless') return 'Charizard Shadowless';
+  if (name === 'Charizard Pokemon First Edition') return 'Charizard 1st Edition';
+  return name;
+} %> 
