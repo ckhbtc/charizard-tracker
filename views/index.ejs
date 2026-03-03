@@ -6,261 +6,227 @@
     <title>Charizard Card Prices</title>
     <link rel="stylesheet" href="/css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .range-btns { text-align: center; margin-bottom: 18px; }
-        .range-btns a { display: inline-block; margin: 0 8px; padding: 6px 16px; border-radius: 6px; background: #222; color: #FFD700; font-family: 'Press Start 2P', monospace; text-decoration: none; border: 2px solid #FFD700; font-size: 0.8em; }
-        .range-btns a.active, .range-btns a:hover { background: #FFD700; color: #222; }
-        .last-updated { text-align: center; margin: 32px 0 0 0; color: #FFD700; font-family: 'Press Start 2P', monospace; font-size: 0.9em; }
-        .card-chart canvas { width: 150px !important; height: 120px !important; }
-        .container.two-column {
-            max-width: 1100px;
-            min-height: 700px;
-            margin: 0 auto;
-            padding: 32px 0 0 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            height: 90vh;
-        }
-        .card-list {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 4px;
-            padding: 0 18px;
-            box-sizing: border-box;
-        }
-        .card {
-            background: #2d1c0b;
-            border-radius: 10px;
-            box-shadow: 0 0 2px #FFD70044;
-            padding: 4px 6px;
-            display: flex;
-            align-items: center;
-            min-width: 0;
-            word-break: break-word;
-            margin: 0 auto;
-            min-height: 130px;
-            height: 130px;
-            width: 97%;
-            max-width: 420px;
-        }
-        .card-content {
-            display: flex;
-            align-items: center;
-            min-width: 0;
-            width: 100%;
-            justify-content: flex-start;
-        }
-        .card-img, .card-details {
-            align-self: center;
-        }
-        .card-img {
-            width: 60px;
-            height: auto;
-            margin-right: 6px;
-            border-radius: 5px;
-            border: 2px solid #FFD700;
-            background: #fff;
-            flex-shrink: 0;
-        }
-        .card-details h2 {
-            font-size: 0.95em;
-            margin: 0 0 2px 0;
-            word-break: break-word;
-        }
-        .prices {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            font-size: 0.9em;
-        }
-        .last-updated-bar {
-            margin: 8px 0 0 0;
-            font-size: 0.85em;
-            color: #FFD700;
-            background: #2d1c0b;
-            text-align: center;
-            border-radius: 6px;
-            padding: 2px 0 2px 0;
-            width: 100%;
-            box-sizing: border-box;
-            font-family: 'Press Start 2P', monospace;
-            letter-spacing: 0.5px;
-            box-shadow: 0 0 0 4px #2d1c0b;
-        }
-        @media (max-width: 900px) {
-            .card-list {
-                grid-template-columns: 1fr;
-                padding: 0 4px;
-            }
-            .container.two-column {
-                display: block;
-                height: auto;
-            }
-            .card {
-                width: 100%;
-                max-width: 100%;
-            }
-        }
-        @media (max-width: 700px) {
-            .container.two-column {
-                max-width: 100vw;
-                padding: 0;
-                margin-top: 0;
-                margin-bottom: 0;
-                margin-left: auto;
-                margin-right: auto;
-                text-align: center;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                min-height: 100vh;
-            }
-            .card-list {
-                grid-template-columns: 1fr;
-                padding: 0 2px;
-                margin-top: 0;
-                margin-bottom: 0;
-                justify-items: center;
-            }
-            .card {
-                min-height: 90px;
-                height: auto;
-                padding: 2px 2px;
-                width: 96%;
-                max-width: 340px;
-                margin-left: auto;
-                margin-right: auto;
-            }
-            .card-img {
-                width: 44px;
-                margin-right: 4px;
-            }
-            .card-details h2 {
-                font-size: 0.8em;
-            }
-            .prices {
-                font-size: 0.75em;
-            }
-            .last-updated-bar {
-                font-size: 0.7em;
-                padding: 1px 0 1px 0;
-                margin-bottom: 0;
-                margin-top: 6px;
-                text-align: center;
-            }
-            h1 {
-                font-size: 1.2em !important;
-                margin-top: 4px !important;
-                margin-bottom: 16px !important;
-            }
-        }
-        h1 {
-            margin-bottom: 24px;
-        }
-    </style>
 </head>
 <body>
-    <div class="container two-column">
-        <h1 style="margin-bottom: 8px; font-size: 2.1em;">Charizard Card Prices</h1>
-        <div class="card-list">
-        <% cards.forEach(function(card, idx) { %>
-        <div class="card">
-            <div class="card-content">
-                <img src="<%= card.image %>" alt="<%= card.name %>" class="card-img">
-                <div class="card-details">
-                    <h2><%= shortName(card.name) %></h2>
-                    <ul class="prices">
-                        <li>Grade 9: <%= card.prices.grade_9 %></li>
-                        <li>Grade 9.5: <%= card.prices.grade_9_5 %></li>
-                        <li>Grade 10: <%= card.prices.grade_10 %></li>
-                    </ul>
+
+    <!-- Floating header -->
+    <header class="header">
+        <h1><span>Charizard</span> Price Tracker</h1>
+        <% if (lastUpdated) { %>
+        <div class="last-updated">Updated <%= new Date(lastUpdated).toLocaleString() %></div>
+        <% } %>
+    </header>
+
+    <!-- Detail panel — clip wrapper prevents backdrop-filter bleed into header -->
+    <div class="detail-wrapper">
+    <div class="detail-panel" id="detail-panel">
+        <div class="detail-header">
+            <div class="detail-title" id="detail-title"></div>
+            <div class="detail-meta">
+                <div class="detail-legend">
+                    <div class="legend-item"><div class="legend-dot g9"></div>PSA 9</div>
+                    <div class="legend-item"><div class="legend-dot g95"></div>PSA 9.5</div>
+                    <div class="legend-item"><div class="legend-dot g10"></div>PSA 10</div>
+                </div>
+                <div class="range-btns">
+                    <button class="range-btn<%= range === '1w' ? ' active' : '' %>" onclick="changeRange('1w')">1W</button>
+                    <button class="range-btn<%= range === '1m' ? ' active' : '' %>" onclick="changeRange('1m')">1M</button>
+                    <button class="range-btn<%= range === '3m' ? ' active' : '' %>" onclick="changeRange('3m')">3M</button>
+                    <button class="range-btn<%= range === '6m' ? ' active' : '' %>" onclick="changeRange('6m')">6M</button>
+                    <button class="range-btn<%= range === '1y' ? ' active' : '' %>" onclick="changeRange('1y')">1Y</button>
+                    <button class="range-btn<%= range === 'max' ? ' active' : '' %>" onclick="changeRange('max')">MAX</button>
                 </div>
             </div>
         </div>
-        <% }); %>
+        <div class="detail-chart">
+            <canvas id="detail-chart"></canvas>
         </div>
-        <% if (lastUpdated) { %>
-        <div class="last-updated-bar">Last Updated: <%= new Date(lastUpdated).toLocaleString() %></div>
-        <% } %>
     </div>
+    </div><!-- end detail-wrapper -->
+
+    <!-- Bottom dock -->
+    <div class="dock">
+        <% cards.forEach(function(card, idx) { %>
+        <div class="dock-card" data-idx="<%= idx %>" onclick="selectCard(<%= idx %>)">
+            <img src="<%= card.image %>" alt="<%= card.name %>">
+            <div class="dock-card-info">
+                <div class="dock-card-name"><%= shortName(card.name) %></div>
+                <div class="dock-prices">
+                    <div class="dock-price-row g9">
+                        <span class="grade">PSA 9</span>
+                        <span class="price"><%= card.prices.grade_9 %></span>
+                    </div>
+                    <div class="dock-price-row g95">
+                        <span class="grade">PSA 9.5</span>
+                        <span class="price"><%= card.prices.grade_9_5 %></span>
+                    </div>
+                    <div class="dock-price-row g10">
+                        <span class="grade">PSA 10</span>
+                        <span class="price"><%= card.prices.grade_10 %></span>
+                    </div>
+                </div>
+            </div>
+            <div class="dock-sparkline">
+                <canvas id="spark-<%= idx %>"></canvas>
+            </div>
+        </div>
+        <% }); %>
+    </div>
+
     <script>
+    var allCardData = [];
     <% cards.forEach(function(card, idx) { %>
-    (function() {
-      var h9 = <%- JSON.stringify(card.history9 || []) %>;
-      var h95 = <%- JSON.stringify(card.history95 || []) %>;
-      var h10 = <%- JSON.stringify(card.history10 || []) %>;
-      // Build a unified list of all timestamps
-      var allTimestamps = [].concat(
-        h9.map(function(h) { return h.timestamp; }),
-        h95.map(function(h) { return h.timestamp; }),
-        h10.map(function(h) { return h.timestamp; })
-      );
-      var uniqueTimestamps = [];
-      for (var i = 0; i < allTimestamps.length; i++) {
-        if (uniqueTimestamps.indexOf(allTimestamps[i]) === -1) {
-          uniqueTimestamps.push(allTimestamps[i]);
-        }
+    allCardData.push({
+      name: '<%= shortName(card.name) %>',
+      h9:  <%- JSON.stringify(card.history9  || []) %>,
+      h95: <%- JSON.stringify(card.history95 || []) %>,
+      h10: <%- JSON.stringify(card.history10 || []) %>
+    });
+    <% }); %>
+
+    var selectedCard = -1;
+    var detailChart = null;
+
+    var COLORS = {
+      g9:  { border: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+      g95: { border: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
+      g10: { border: '#ff6b35', bg: 'rgba(255,107,53,0.12)' }
+    };
+
+    function buildChartData(card) {
+      var allTs = {};
+      card.h9.forEach(function(h)  { allTs[h.timestamp] = true; });
+      card.h95.forEach(function(h) { allTs[h.timestamp] = true; });
+      card.h10.forEach(function(h) { allTs[h.timestamp] = true; });
+      var timestamps = Object.keys(allTs).sort();
+      function lookup(hist) {
+        var map = {};
+        hist.forEach(function(h) { map[h.timestamp] = h.price; });
+        return timestamps.map(function(ts) { return map[ts] || null; });
       }
-      uniqueTimestamps.sort();
-      function priceAt(history, ts) {
-        for (var i = 0; i < history.length; i++) {
-          if (history[i].timestamp === ts) return history[i].price;
-        }
-        return null;
-      }
-      var data9 = uniqueTimestamps.map(function(ts) { return priceAt(h9, ts); });
-      var data95 = uniqueTimestamps.map(function(ts) { return priceAt(h95, ts); });
-      var data10 = uniqueTimestamps.map(function(ts) { return priceAt(h10, ts); });
-      var datasets = [];
-      for (var i = 0; i < data9.length; i++) { if (data9[i] !== null) { datasets.push({ label: 'Grade 9', data: data9, borderColor: '#FFD700', backgroundColor: 'rgba(255,215,0,0.2)', tension: 0.3, pointRadius: 0, borderWidth: 2 }); break; } }
-      for (var i = 0; i < data95.length; i++) { if (data95[i] !== null) { datasets.push({ label: 'Grade 9.5', data: data95, borderColor: '#FF5733', backgroundColor: 'rgba(255,87,51,0.2)', tension: 0.3, pointRadius: 0, borderWidth: 2 }); break; } }
-      for (var i = 0; i < data10.length; i++) { if (data10[i] !== null) { datasets.push({ label: 'Grade 10', data: data10, borderColor: '#33FF57', backgroundColor: 'rgba(51,255,87,0.2)', tension: 0.3, pointRadius: 0, borderWidth: 2 }); break; } }
-      new Chart(document.getElementById('chart-<%= idx %>'), {
+      return { labels: timestamps, d9: lookup(card.h9), d95: lookup(card.h95), d10: lookup(card.h10) };
+    }
+
+    // Sparklines
+    allCardData.forEach(function(card, idx) {
+      var data = buildChartData(card);
+      var canvas = document.getElementById('spark-' + idx);
+      if (!canvas) return;
+      new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
-          labels: uniqueTimestamps,
-          datasets: datasets
+          labels: data.labels,
+          datasets: [{ data: data.d10, borderColor: COLORS.g10.border, backgroundColor: COLORS.g10.bg, fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5 }]
         },
         options: {
+          responsive: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false } },
+          animation: { duration: 0 }
+        }
+      });
+    });
+
+    function selectCard(idx) {
+      // Toggle off if same card clicked again
+      if (selectedCard === idx) {
+        selectedCard = -1;
+        document.querySelectorAll('.dock-card').forEach(function(el) { el.classList.remove('active'); });
+        document.getElementById('detail-panel').classList.remove('visible');
+        return;
+      }
+
+      selectedCard = idx;
+      document.querySelectorAll('.dock-card').forEach(function(el, i) {
+        el.classList.toggle('active', i === idx);
+      });
+
+      var card = allCardData[idx];
+      document.getElementById('detail-title').textContent = card.name;
+      document.getElementById('detail-panel').classList.add('visible');
+
+      renderDetailChart(card);
+    }
+
+    function renderDetailChart(card) {
+      var data = buildChartData(card);
+      var canvas = document.getElementById('detail-chart');
+      if (detailChart) { detailChart.destroy(); }
+      detailChart = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [
+            { label: 'PSA 9',   data: data.d9,  borderColor: COLORS.g9.border,  backgroundColor: COLORS.g9.bg,  fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2, spanGaps: true },
+            { label: 'PSA 9.5', data: data.d95, borderColor: COLORS.g95.border, backgroundColor: COLORS.g95.bg, fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2, spanGaps: true },
+            { label: 'PSA 10',  data: data.d10, borderColor: COLORS.g10.border, backgroundColor: COLORS.g10.bg, fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2, spanGaps: true }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: { display: false },
             tooltip: {
-              enabled: true,
+              backgroundColor: 'rgba(5,5,15,0.92)',
+              borderColor: 'rgba(255,255,255,0.1)',
+              borderWidth: 1,
+              titleColor: 'rgba(255,255,255,0.5)',
+              bodyColor: '#fff',
+              padding: 10,
+              cornerRadius: 8,
+              titleFont: { size: 11 },
+              bodyFont: { size: 12, weight: '600' },
               callbacks: {
-                title: function(context) {
-                  var ts = context[0].label;
-                  return new Date(ts).toLocaleString();
-                },
-                label: function(context) {
-                  var grade = context.dataset.label;
-                  var price = context.parsed.y;
-                  return grade + ': $' + price;
+                title: function(ctx) { return new Date(ctx[0].label).toLocaleString(); },
+                label: function(ctx) {
+                  if (ctx.parsed.y === null) return null;
+                  return ' ' + ctx.dataset.label + ':  $' + ctx.parsed.y.toLocaleString();
                 }
               }
             }
           },
           scales: {
-            y: { display: false },
-            x: { display: false }
-          },
-          elements: {
-            point: { radius: 0 }
+            x: {
+              display: true,
+              grid: { color: 'rgba(255,255,255,0.04)' },
+              ticks: {
+                color: 'rgba(255,255,255,0.25)',
+                font: { size: 10 },
+                maxTicksLimit: 8,
+                callback: function(value) {
+                  return new Date(this.getLabelForValue(value)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }
+              }
+            },
+            y: {
+              display: true,
+              position: 'right',
+              grid: { color: 'rgba(255,255,255,0.04)' },
+              ticks: {
+                color: 'rgba(255,255,255,0.25)',
+                font: { size: 10 },
+                callback: function(v) { return '$' + v.toLocaleString(); }
+              }
+            }
           }
         }
       });
-    })();
-    <% }); %>
+    }
+
+    function changeRange(range) {
+      window.location.href = '/?range=' + range;
+    }
     </script>
 </body>
 </html>
 
 <% function shortName(name) {
   if (name === 'Charizard Pokemon Japanese Expansion Pack 1996') return 'Japanese 1996';
-  if (name === 'Charizard Pokemon Base Set 2') return 'Charizard Base Set 2';
-  if (name === 'Charizard Pokemon Base Set') return 'Charizard Base Set';
-  if (name === 'Charizard Pokemon Shadowless') return 'Charizard Shadowless';
-  if (name === 'Charizard Pokemon First Edition') return 'Charizard 1st Edition';
+  if (name === 'Charizard Pokemon Base Set 2') return 'Base Set 2';
+  if (name === 'Charizard Pokemon Base Set') return 'Base Set';
+  if (name === 'Charizard Pokemon Shadowless') return 'Shadowless';
+  if (name === 'Charizard Pokemon First Edition') return '1st Edition';
   return name;
-} %> 
+} %>
