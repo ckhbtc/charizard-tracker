@@ -3,7 +3,6 @@ const path = require('path');
 const cron = require('node-cron');
 const { initDB, insertPrice, getPriceHistory } = require('./db');
 const { fetchPrices, cards } = require('./scraper');
-const puppeteer = require('puppeteer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -87,7 +86,7 @@ function getAllCardData(callback, limit) {
     grades.forEach(grade => {
       getPriceHistory(card.name, grade, limit, (err, rows) => {
         if (rows && rows.length > 0) {
-          cardData.prices['grade_' + grade.replace('.', '_')] = `$${rows[rows.length-1].price}`;
+          cardData.prices['grade_' + grade.replace('.', '_')] = `$${Math.round(rows[rows.length-1].price).toLocaleString()}`;
           allHistories[grade] = rows.map(r => ({ price: r.price, timestamp: r.timestamp }));
         } else {
           cardData.prices['grade_' + grade.replace('.', '_')] = 'N/A';
@@ -108,10 +107,10 @@ function getAllCardData(callback, limit) {
 }
 
 app.get('/', (req, res) => {
-  // Get time horizon from query (?range=1d|1w|1m)
-  const rangeMap = { '1d': 24, '1w': 24*7, '1m': 24*30 };
-  const range = req.query.range || '1d';
-  const limit = rangeMap[range] || 24;
+  // Get time horizon from query (?range=1w|1m|3m|6m|1y|max)
+  const rangeMap = { '1w': 24*7, '1m': 24*30, '3m': 24*90, '6m': 24*180, '1y': 24*365, 'max': 999999 };
+  const range = req.query.range || '1m';
+  const limit = rangeMap[range] || 24*30;
 
   getAllCardData(cards => {
     // Get last updated timestamp from DB
