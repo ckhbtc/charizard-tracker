@@ -1,4 +1,13 @@
 node_modules/
 .DS_Store
-prices.db
 *.log
+
+# Database + scraped data — kept private (server / local only).
+# We don't republish pricecharting.com data.
+prices.db
+prices_backup.sql
+
+# Local-only — contain server IPs, SSH key paths, and AI assistant config
+CLAUDE.md
+DEPLOYMENT.md
+.claude/
