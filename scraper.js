@@ -1,6 +1,4 @@
 const puppeteer = require('puppeteer');
-const path = require('path');
-const cron = require('node-cron');
 
 // Helper function for logging with timestamp and emoji
 function logWithTimestamp(type, message) {
@@ -11,11 +9,6 @@ function logWithTimestamp(type, message) {
   else if (type === 'error') emoji = '❌';
   console.log(`[${now}] ${emoji} ${message}`);
 }
-
-const CHROME_PATH = path.join(
-  process.env.HOME,
-  '.cache/puppeteer/chrome/mac_arm-136.0.7103.92/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'
-);
 
 const cards = [
   {
