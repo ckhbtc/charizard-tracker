@@ -207,15 +207,30 @@
         }
       };
 
+      // Vertical fade gradient — most opaque at the line, fades to transparent
+      function gradient(ctx, chartArea, hex) {
+        if (!chartArea) return hex;
+        var g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        g.addColorStop(0, hex.replace(/[\d.]+\)$/, '0.35)'));
+        g.addColorStop(1, hex.replace(/[\d.]+\)$/, '0)'));
+        return g;
+      }
+      function fillFor(hex) {
+        return function(context) {
+          var chart = context.chart;
+          return gradient(chart.ctx, chart.chartArea, hex);
+        };
+      }
+
       detailChart = new Chart(canvas.getContext('2d'), {
         plugins: [athPlugin],
         type: 'line',
         data: {
           labels: data.labels,
           datasets: [
-            { label: 'PSA 9',   data: data.d9,  borderColor: COLORS.g9.border,  backgroundColor: COLORS.g9.bg,  fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2, spanGaps: true },
-            { label: 'PSA 9.5', data: data.d95, borderColor: COLORS.g95.border, backgroundColor: COLORS.g95.bg, fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2, spanGaps: true },
-            { label: 'PSA 10',  data: data.d10, borderColor: COLORS.g10.border, backgroundColor: COLORS.g10.bg, fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2, spanGaps: true }
+            { label: 'PSA 9',   data: data.d9,  borderColor: COLORS.g9.border,  backgroundColor: fillFor('rgba(245,158,11,1)'),  fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2, spanGaps: true },
+            { label: 'PSA 9.5', data: data.d95, borderColor: COLORS.g95.border, backgroundColor: fillFor('rgba(239,68,68,1)'),   fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2, spanGaps: true },
+            { label: 'PSA 10',  data: data.d10, borderColor: COLORS.g10.border, backgroundColor: fillFor('rgba(255,107,53,1)'),  fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2, spanGaps: true }
           ]
         },
         options: {
