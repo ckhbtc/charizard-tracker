@@ -149,6 +149,14 @@ app.get('/healthz', (req, res) => {
   res.json({ ok: true, uptime: process.uptime() });
 });
 
+// Lightweight endpoint for the client poll — just the latest scrape time.
+app.get('/api/last-updated', (req, res) => {
+  getPriceHistory(cards[0].name, '10', 1, (err, rows) => {
+    if (err) return res.status(500).json({ error: 'db' });
+    res.json({ lastUpdated: rows && rows[0] ? rows[0].timestamp : null });
+  });
+});
+
 app.listen(PORT, () => {
   logWithTimestamp('success', `Server running on http://localhost:${PORT}`);
 }); 

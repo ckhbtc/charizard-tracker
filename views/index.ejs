@@ -13,7 +13,9 @@
     <header class="header">
         <h1><span>Charizard</span> Price Tracker</h1>
         <% if (lastUpdated) { %>
-        <div class="last-updated">Updated <%= new Date(lastUpdated).toLocaleString() %></div>
+        <div class="last-updated" id="last-updated" data-ts="<%= lastUpdated %>">
+            <span class="dot"></span>Updated <span class="ts"><%= new Date(lastUpdated).toLocaleString() %></span>
+        </div>
         <% } %>
     </header>
 
@@ -289,6 +291,23 @@
     function changeRange(range) {
       window.location.href = '/?range=' + range;
     }
+
+    // Poll for new scrape every 60s; pulse the chip when timestamp changes
+    (function() {
+      var chip = document.getElementById('last-updated');
+      if (!chip) return;
+      var lastSeen = chip.getAttribute('data-ts');
+      setInterval(function() {
+        fetch('/api/last-updated').then(function(r) { return r.json(); }).then(function(j) {
+          if (!j || !j.lastUpdated || j.lastUpdated === lastSeen) return;
+          lastSeen = j.lastUpdated;
+          chip.querySelector('.ts').textContent = new Date(j.lastUpdated).toLocaleString();
+          chip.classList.remove('pulse');
+          void chip.offsetWidth;
+          chip.classList.add('pulse');
+        }).catch(function() {});
+      }, 60000);
+    })();
 
     // Keyboard nav: ←/→ to switch cards, Esc to close detail panel
     document.addEventListener('keydown', function(e) {
