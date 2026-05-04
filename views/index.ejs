@@ -289,6 +289,23 @@
     function changeRange(range) {
       window.location.href = '/?range=' + range;
     }
+
+    // Keyboard nav: ←/→ to switch cards, Esc to close detail panel
+    document.addEventListener('keydown', function(e) {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.key === 'Escape') {
+        if (selectedCard !== -1) selectCard(selectedCard);
+        return;
+      }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        var n = allCardData.length;
+        if (n === 0) return;
+        var step = e.key === 'ArrowRight' ? 1 : -1;
+        var next = selectedCard === -1 ? (step > 0 ? 0 : n - 1) : (selectedCard + step + n) % n;
+        selectCard(next);
+        if (selectedCard === next) e.preventDefault();
+      }
+    });
     </script>
 </body>
 </html>
