@@ -23,14 +23,19 @@ const cardImages = {
   'Charizard Pokemon First Edition': '/images/first-edition.jpg',
 };
 
-// Helper function for logging with timestamp and emoji
+// Helper function for logging with timestamp and ANSI-colored level tag.
+// Falls back to plain text when stdout isn't a TTY (e.g. PM2 file logs).
+const ANSI = process.stdout.isTTY ? {
+  reset: '\x1b[0m', dim: '\x1b[2m',
+  green: '\x1b[32m', cyan: '\x1b[36m', red: '\x1b[31m'
+} : { reset: '', dim: '', green: '', cyan: '', red: '' };
 function logWithTimestamp(type, message) {
   const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '') + ' UTC';
-  let emoji = '';
-  if (type === 'success') emoji = '✅';
-  else if (type === 'check') emoji = '🔍';
-  else if (type === 'error') emoji = '❌';
-  console.log(`[${now}] ${emoji} ${message}`);
+  let tag = '     ';
+  if (type === 'success')      tag = `${ANSI.green}  OK ${ANSI.reset}`;
+  else if (type === 'check')   tag = `${ANSI.cyan} RUN ${ANSI.reset}`;
+  else if (type === 'error')   tag = `${ANSI.red} ERR ${ANSI.reset}`;
+  console.log(`${ANSI.dim}[${now}]${ANSI.reset} ${tag} ${message}`);
 }
 
 // Helper function to make card names concise for logs
