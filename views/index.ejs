@@ -129,16 +129,20 @@
       });
     });
 
-    // Sparklines
+    // Sparklines — color tinted by PSA 10 trend over the visible range
     allCardData.forEach(function(card, idx) {
       var data = buildChartData(card);
       var canvas = document.getElementById('spark-' + idx);
       if (!canvas) return;
+      var pct = pctChange(card.h10);
+      var trend = pct === null ? 'flat' : (pct >= 0 ? 'up' : 'down');
+      var stroke = trend === 'up' ? '#4ade80' : trend === 'down' ? '#f87171' : COLORS.g10.border;
+      var fill   = trend === 'up' ? 'rgba(74,222,128,0.12)' : trend === 'down' ? 'rgba(248,113,113,0.12)' : COLORS.g10.bg;
       new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
           labels: data.labels,
-          datasets: [{ data: data.d10, borderColor: COLORS.g10.border, backgroundColor: COLORS.g10.bg, fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5 }]
+          datasets: [{ data: data.d10, borderColor: stroke, backgroundColor: fill, fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5 }]
         },
         options: {
           responsive: false,
