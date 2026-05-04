@@ -53,21 +53,18 @@ async function fetchPrices() {
         await page.waitForSelector('span.price.js-price', { timeout: 10000 });
         const prices = await page.$$eval('span.price.js-price', els => els.map(e => e.textContent.trim()));
         if (prices.length >= 6) {
-          results.push({
-            card_name: card.name,
-            grade: '9',
-            price: parseFloat(prices[3].replace(/[^\d.]/g, ''))
+          // Indices 3/4/5 = PSA 9 / 9.5 / 10. If pricecharting reshuffles its
+          // table this will silently break — sanity-check each value before pushing.
+          [['9', 3], ['9.5', 4], ['10', 5]].forEach(([grade, idx]) => {
+            const price = parseFloat(prices[idx].replace(/[^\d.]/g, ''));
+            if (Number.isFinite(price) && price > 0) {
+              results.push({ card_name: card.name, grade, price });
+            } else {
+              logWithTimestamp('error', `${card.name} grade ${grade}: bad parse "${prices[idx]}"`);
+            }
           });
-          results.push({
-            card_name: card.name,
-            grade: '9.5',
-            price: parseFloat(prices[4].replace(/[^\d.]/g, ''))
-          });
-          results.push({
-            card_name: card.name,
-            grade: '10',
-            price: parseFloat(prices[5].replace(/[^\d.]/g, ''))
-          });
+        } else {
+          logWithTimestamp('error', `${card.name}: only ${prices.length} price cells found, expected >= 6`);
         }
       }
     } catch (err) {
