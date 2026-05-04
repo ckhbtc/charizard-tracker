@@ -113,24 +113,18 @@ app.get('/', (req, res) => {
   const limit = rangeMap[range] || 24*30;
 
   getAllCardData(cards => {
-    // Get last updated timestamp from DB
-    const allTimestamps = [];
-    let pending = cards.length * 3;
+    // lastUpdated = max timestamp across all series we already loaded
+    let lastUpdated = null;
     cards.forEach(card => {
-      ['9', '9.5', '10'].forEach(grade => {
-        getPriceHistory(card.name, grade, 1, (err, rows) => {
-          if (rows && rows.length > 0) {
-            allTimestamps.push(rows[0].timestamp);
-          }
-          pending--;
-          if (pending === 0) {
-            // Find the most recent timestamp
-            const lastUpdated = allTimestamps.length > 0 ? allTimestamps.sort().reverse()[0] : null;
-            res.render('index', { cards, range, lastUpdated });
-          }
-        });
+      ['history9', 'history95', 'history10'].forEach(key => {
+        const rows = card[key];
+        if (rows && rows.length > 0) {
+          const ts = rows[rows.length - 1].timestamp;
+          if (!lastUpdated || ts > lastUpdated) lastUpdated = ts;
+        }
       });
     });
+    res.render('index', { cards, range, lastUpdated });
   }, limit);
 });
 
