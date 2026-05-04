@@ -140,6 +140,10 @@ app.get('/', (req, res) => {
   }, limit);
 });
 
+app.get('/healthz', (req, res) => {
+  res.json({ ok: true, uptime: process.uptime() });
+});
+
 app.listen(PORT, () => {
   logWithTimestamp('success', `Server running on http://localhost:${PORT}`);
 }); 
