@@ -287,8 +287,9 @@ body::after {
 }
 
 .dock-price-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px;
   align-items: center;
 }
 
@@ -303,7 +304,19 @@ body::after {
   font-size: 0.68rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  text-align: right;
 }
+
+.dock-price-row .delta {
+  font-size: 0.58rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 42px;
+  text-align: right;
+  color: transparent;
+}
+.dock-price-row .delta.up   { color: #4ade80; }
+.dock-price-row .delta.down { color: #f87171; }
 
 .dock-price-row.g9  .price { color: var(--grade-9); }
 .dock-price-row.g95 .price { color: var(--grade-95); }

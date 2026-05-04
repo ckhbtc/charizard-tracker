@@ -55,14 +55,17 @@
                     <div class="dock-price-row g9">
                         <span class="grade">PSA 9</span>
                         <span class="price"><%= card.prices.grade_9 %></span>
+                        <span class="delta" data-idx="<%= idx %>" data-grade="9"></span>
                     </div>
                     <div class="dock-price-row g95">
                         <span class="grade">PSA 9.5</span>
                         <span class="price"><%= card.prices.grade_9_5 %></span>
+                        <span class="delta" data-idx="<%= idx %>" data-grade="95"></span>
                     </div>
                     <div class="dock-price-row g10">
                         <span class="grade">PSA 10</span>
                         <span class="price"><%= card.prices.grade_10 %></span>
+                        <span class="delta" data-idx="<%= idx %>" data-grade="10"></span>
                     </div>
                 </div>
             </div>
@@ -106,6 +109,25 @@
       }
       return { labels: timestamps, d9: lookup(card.h9), d95: lookup(card.h95), d10: lookup(card.h10) };
     }
+
+    // % change badges — first vs last point of the visible range, per grade
+    function pctChange(hist) {
+      if (!hist || hist.length < 2) return null;
+      var first = hist[0].price, last = hist[hist.length - 1].price;
+      if (!first) return null;
+      return ((last - first) / first) * 100;
+    }
+    allCardData.forEach(function(card, idx) {
+      [['9', card.h9], ['95', card.h95], ['10', card.h10]].forEach(function(pair) {
+        var pct = pctChange(pair[1]);
+        var el = document.querySelector('.delta[data-idx="' + idx + '"][data-grade="' + pair[0] + '"]');
+        if (!el) return;
+        if (pct === null) { el.textContent = ''; return; }
+        var sign = pct > 0 ? '+' : '';
+        el.textContent = sign + pct.toFixed(1) + '%';
+        el.classList.add(pct >= 0 ? 'up' : 'down');
+      });
+    });
 
     // Sparklines
     allCardData.forEach(function(card, idx) {
