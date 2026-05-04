@@ -58,8 +58,20 @@ cron.schedule('0 * * * *', async () => {
   }
 });
 
-// Run once on startup
+// Run once on startup, but only if the most recent scrape is older than
+// STARTUP_SCRAPE_MAX_AGE_MS. Avoids hammering pricecharting on PM2 restarts.
+const STARTUP_SCRAPE_MAX_AGE_MS = 30 * 60 * 1000;
 (async () => {
+  const lastTs = await new Promise(resolve => {
+    getPriceHistory(cards[0].name, '10', 1, (err, rows) => {
+      if (err || !rows || rows.length === 0) return resolve(null);
+      resolve(new Date(rows[0].timestamp + ' UTC').getTime());
+    });
+  });
+  if (lastTs && Date.now() - lastTs < STARTUP_SCRAPE_MAX_AGE_MS) {
+    logWithTimestamp('check', `Skipping startup scrape — last run ${Math.round((Date.now() - lastTs)/60000)}m ago.`);
+    return;
+  }
   const prices = await fetchPrices();
   prices.forEach(({ card_name, grade, price }) => {
     if (!isNaN(price)) {
