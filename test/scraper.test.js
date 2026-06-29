@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  buildFetchUrl,
   extractPriceCells,
   extractPricesFromHtml,
   fetchPrices,
@@ -50,4 +51,16 @@ test('fetchPrices records no prices when upstream blocks every card', async () =
   const prices = await fetchPrices({ fetchImpl });
   assert.equal(prices.length, 0);
   assert.equal(calls.length, 5);
+});
+
+test('buildFetchUrl can route PriceCharting requests through a proxy base', () => {
+  process.env.PRICE_FETCH_BASE_URL = 'http://13.135.99.176/pc-proxy/';
+  try {
+    assert.equal(
+      buildFetchUrl('https://www.pricecharting.com/game/pokemon-base-set/charizard-4'),
+      'http://13.135.99.176/pc-proxy/game/pokemon-base-set/charizard-4'
+    );
+  } finally {
+    delete process.env.PRICE_FETCH_BASE_URL;
+  }
 });

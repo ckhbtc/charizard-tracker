@@ -95,6 +95,15 @@ function extractPricesFromHtml(html, cardName) {
 }
 
 function buildFetchUrl(url) {
+  const proxyBaseUrl = process.env.PRICE_FETCH_BASE_URL;
+  if (proxyBaseUrl) {
+    const source = new URL(url);
+    if (source.hostname !== 'www.pricecharting.com') {
+      throw new Error(`unsupported proxied host: ${source.hostname}`);
+    }
+    return `${proxyBaseUrl.replace(/\/$/, '')}${source.pathname}${source.search}`;
+  }
+
   const prefix = process.env.PRICE_FETCH_PREFIX || '';
   return prefix ? `${prefix}${encodeURIComponent(url)}` : url;
 }
@@ -144,6 +153,7 @@ async function fetchPrices(options = {}) {
 module.exports = {
   fetchPrices,
   cards,
+  buildFetchUrl,
   extractPriceCells,
   extractPricesFromHtml,
   parsePrice,
