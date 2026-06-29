@@ -1,18 +1,13 @@
-const puppeteer = require('puppeteer');
+const PRICE_FETCH_TIMEOUT_MS = parseInt(process.env.PRICE_FETCH_TIMEOUT_MS || '15000', 10);
 
-// Helper function for logging with timestamp and ANSI-colored level tag.
-const ANSI = process.stdout.isTTY ? {
-  reset: '\x1b[0m', dim: '\x1b[2m',
-  green: '\x1b[32m', cyan: '\x1b[36m', red: '\x1b[31m'
-} : { reset: '', dim: '', green: '', cyan: '', red: '' };
-function logWithTimestamp(type, message) {
-  const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '') + ' UTC';
-  let tag = '     ';
-  if (type === 'success')      tag = `${ANSI.green}  OK ${ANSI.reset}`;
-  else if (type === 'check')   tag = `${ANSI.cyan} RUN ${ANSI.reset}`;
-  else if (type === 'error')   tag = `${ANSI.red} ERR ${ANSI.reset}`;
-  console.log(`${ANSI.dim}[${now}]${ANSI.reset} ${tag} ${message}`);
-}
+const PRICE_HEADERS = {
+  'User-Agent':
+    process.env.PRICE_USER_AGENT ||
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Cache-Control': 'no-cache',
+};
 
 const cards = [
   {
@@ -37,51 +32,119 @@ const cards = [
   },
 ];
 
-async function fetchPrices() {
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+function logWithTimestamp(type, message) {
+  const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '') + ' UTC';
+  const tag = type === 'success' ? '  OK ' : type === 'check' ? ' RUN ' : type === 'error' ? ' ERR ' : '     ';
+  console.log(`[${now}] ${tag} ${message}`);
+}
+
+function shortCardName(cardName) {
+  if (cardName === 'Charizard Pokemon Japanese Expansion Pack 1996') return 'Japanese 1996';
+  return cardName.replace('Charizard Pokemon ', '');
+}
+
+function decodeHtml(value) {
+  return value
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
+function stripTags(value) {
+  return value.replace(/<[^>]+>/g, '');
+}
+
+function parsePrice(value) {
+  const price = parseFloat(decodeHtml(stripTags(value)).replace(/[^\d.]/g, ''));
+  return Number.isFinite(price) && price > 0 ? price : null;
+}
+
+function extractPriceCells(html) {
+  const cells = [];
+  const pattern = /<span\b[^>]*class=["'][^"']*\bprice\b[^"']*\bjs-price\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi;
+  let match;
+  while ((match = pattern.exec(html))) {
+    cells.push(decodeHtml(stripTags(match[1])).trim());
+  }
+  return cells;
+}
+
+function extractPricesFromHtml(html, cardName) {
   const results = [];
+  const prices = extractPriceCells(html);
+  if (prices.length < 6) {
+    throw new Error(`only ${prices.length} price cells found, expected >= 6`);
+  }
+
+  // Indices 3/4/5 = PSA 9 / 9.5 / 10 in the PriceCharting table.
+  for (const [grade, idx] of [
+    ['9', 3],
+    ['9.5', 4],
+    ['10', 5],
+  ]) {
+    const price = parsePrice(prices[idx]);
+    if (price == null) {
+      throw new Error(`${cardName} grade ${grade}: bad parse "${prices[idx]}"`);
+    }
+    results.push({ card_name: cardName, grade, price });
+  }
+  return results;
+}
+
+function buildFetchUrl(url) {
+  const prefix = process.env.PRICE_FETCH_PREFIX || '';
+  return prefix ? `${prefix}${encodeURIComponent(url)}` : url;
+}
+
+async function fetchCardHtml(url, fetchImpl = globalThis.fetch) {
+  if (!fetchImpl) {
+    throw new Error('global fetch is unavailable; run on Node 18+');
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PRICE_FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetchImpl(buildFetchUrl(url), {
+      headers: PRICE_HEADERS,
+      redirect: 'follow',
+      signal: controller.signal,
+    });
+    const body = await response.text();
+    return { status: response.status, body };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchPrices(options = {}) {
+  const fetchImpl = options.fetchImpl || globalThis.fetch;
+  const results = [];
+
   for (const card of cards) {
-    const page = await browser.newPage();
     try {
-      const response = await page.goto(card.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-      const status = response.status();
-      let shortName = card.name.replace('Charizard Pokemon ', '');
-      if (card.name === 'Charizard Pokemon Japanese Expansion Pack 1996') {
-        shortName = 'Japanese 1996';
+      const response = await fetchCardHtml(card.url, fetchImpl);
+      logWithTimestamp('check', `${shortCardName(card.name)}: ${response.status}`);
+      if (response.status !== 200) {
+        logWithTimestamp('error', `${shortCardName(card.name)}: upstream ${response.status}`);
+        continue;
       }
-      logWithTimestamp('check', `${shortName}: ${status}`);
-      if (status === 200) {
-        await page.waitForSelector('span.price.js-price', { timeout: 10000 });
-        const prices = await page.$$eval('span.price.js-price', els => els.map(e => e.textContent.trim()));
-        if (prices.length >= 6) {
-          // Indices 3/4/5 = PSA 9 / 9.5 / 10. If pricecharting reshuffles its
-          // table this will silently break — sanity-check each value before pushing.
-          [['9', 3], ['9.5', 4], ['10', 5]].forEach(([grade, idx]) => {
-            const price = parseFloat(prices[idx].replace(/[^\d.]/g, ''));
-            if (Number.isFinite(price) && price > 0) {
-              results.push({ card_name: card.name, grade, price });
-            } else {
-              logWithTimestamp('error', `${card.name} grade ${grade}: bad parse "${prices[idx]}"`);
-            }
-          });
-        } else {
-          logWithTimestamp('error', `${card.name}: only ${prices.length} price cells found, expected >= 6`);
-        }
-      }
+
+      results.push(...extractPricesFromHtml(response.body, card.name));
     } catch (err) {
-      console.error(`Error fetching ${card.name}:`, err.message);
-    } finally {
-      await page.close();
+      logWithTimestamp('error', `${shortCardName(card.name)}: ${err.message}`);
     }
   }
-  await browser.close();
+
   return results;
 }
 
 module.exports = {
   fetchPrices,
-  cards
+  cards,
+  extractPriceCells,
+  extractPricesFromHtml,
+  parsePrice,
 }; 
