@@ -33,9 +33,17 @@ function getPriceHistory(card_name, grade, limit = 24, callback) {
   );
 }
 
+function getLatestPriceTimestamp(callback) {
+  db.get(`SELECT MAX(timestamp) AS timestamp FROM prices`, (err, row) => {
+    if (err) return callback(err);
+    callback(null, row?.timestamp || null);
+  });
+}
+
 module.exports = {
   db,
   initDB,
   insertPrice,
-  getPriceHistory
+  getPriceHistory,
+  getLatestPriceTimestamp,
 }; 

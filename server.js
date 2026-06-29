@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cron = require('node-cron');
-const { initDB, insertPrice, getPriceHistory } = require('./db');
+const { initDB, insertPrice, getPriceHistory, getLatestPriceTimestamp } = require('./db');
 const { fetchPrices, cards } = require('./scraper');
 
 const app = express();
@@ -44,46 +44,104 @@ function shortCardName(cardName) {
   return cardName.replace('Charizard Pokemon ', '');
 }
 
-// Initialize DB
-initDB();
+const SCRAPE_STALE_MS = parseInt(process.env.SCRAPE_STALE_MS || String(6 * 60 * 60 * 1000), 10);
+const scrapeState = {
+  inProgress: false,
+  lastAttemptAt: null,
+  lastSuccessAt: null,
+  lastError: null,
+  lastResultCount: 0,
+};
 
-logWithTimestamp('check', 'Cron job scheduled!');
-cron.schedule('0 * * * *', async () => {
-  try {
-    logWithTimestamp('check', 'Running scheduled price scrape...');
-    const prices = await fetchPrices();
-    prices.forEach(({ card_name, grade, price }) => {
-      if (!isNaN(price)) {
-        insertPrice(card_name, grade, price);
-        logWithTimestamp('success', `${shortCardName(card_name)} ${grade}: ${price}`);
-      }
-    });
-  } catch (err) {
-    logWithTimestamp('error', `Scheduled scrape failed: ${err}`);
-  }
-});
+function timestampToMs(timestamp) {
+  if (!timestamp) return null;
+  const parsed = new Date(`${timestamp} UTC`).getTime();
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
-// Run once on startup, but only if the most recent scrape is older than
-// STARTUP_SCRAPE_MAX_AGE_MS. Avoids hammering pricecharting on PM2 restarts.
-const STARTUP_SCRAPE_MAX_AGE_MS = 30 * 60 * 1000;
-(async () => {
-  const lastTs = await new Promise(resolve => {
-    getPriceHistory(cards[0].name, '10', 1, (err, rows) => {
-      if (err || !rows || rows.length === 0) return resolve(null);
-      resolve(new Date(rows[0].timestamp + ' UTC').getTime());
+function getLatestTimestamp() {
+  return new Promise((resolve, reject) => {
+    getLatestPriceTimestamp((err, timestamp) => {
+      if (err) return reject(err);
+      resolve(timestamp);
     });
   });
-  if (lastTs && Date.now() - lastTs < STARTUP_SCRAPE_MAX_AGE_MS) {
-    logWithTimestamp('check', `Skipping startup scrape — last run ${Math.round((Date.now() - lastTs)/60000)}m ago.`);
-    return;
-  }
-  const prices = await fetchPrices();
+}
+
+function insertPrices(prices) {
   prices.forEach(({ card_name, grade, price }) => {
     if (!isNaN(price)) {
       insertPrice(card_name, grade, price);
       logWithTimestamp('success', `${shortCardName(card_name)} ${grade}: ${price}`);
     }
   });
+}
+
+async function runScrape(reason) {
+  if (scrapeState.inProgress) {
+    logWithTimestamp('check', `Skipping ${reason} scrape because one is already running.`);
+    return { skipped: true };
+  }
+
+  scrapeState.inProgress = true;
+  scrapeState.lastAttemptAt = new Date().toISOString();
+  scrapeState.lastError = null;
+
+  try {
+    logWithTimestamp('check', `Running ${reason} price scrape...`);
+    const prices = await fetchPrices();
+    scrapeState.lastResultCount = prices.length;
+
+    if (prices.length === 0) {
+      throw new Error('scrape returned 0 prices');
+    }
+
+    insertPrices(prices);
+    scrapeState.lastSuccessAt = new Date().toISOString();
+    return { skipped: false, count: prices.length };
+  } catch (err) {
+    scrapeState.lastError = err.message || String(err);
+    logWithTimestamp('error', `${reason} scrape failed: ${scrapeState.lastError}`);
+    return { skipped: false, error: scrapeState.lastError };
+  } finally {
+    scrapeState.inProgress = false;
+  }
+}
+
+async function scrapeHealth() {
+  const latestTimestamp = await getLatestTimestamp();
+  const latestMs = timestampToMs(latestTimestamp);
+  const stale = !latestMs || Date.now() - latestMs > SCRAPE_STALE_MS;
+  return {
+    ok: !stale,
+    stale,
+    inProgress: scrapeState.inProgress,
+    lastAttemptAt: scrapeState.lastAttemptAt,
+    lastSuccessAt: scrapeState.lastSuccessAt,
+    lastStoredTimestamp: latestTimestamp,
+    lastError: scrapeState.lastError,
+    lastResultCount: scrapeState.lastResultCount,
+    staleAfterMs: SCRAPE_STALE_MS,
+  };
+}
+
+// Initialize DB
+initDB();
+
+logWithTimestamp('check', 'Cron job scheduled!');
+cron.schedule('0 * * * *', () => runScrape('scheduled'));
+
+// Run once on startup, but only if the most recent scrape is older than
+// STARTUP_SCRAPE_MAX_AGE_MS. Avoids hammering pricecharting on PM2 restarts.
+const STARTUP_SCRAPE_MAX_AGE_MS = 30 * 60 * 1000;
+(async () => {
+  const lastTimestamp = await getLatestTimestamp();
+  const lastTs = timestampToMs(lastTimestamp);
+  if (lastTs && Date.now() - lastTs < STARTUP_SCRAPE_MAX_AGE_MS) {
+    logWithTimestamp('check', `Skipping startup scrape, last run ${Math.round((Date.now() - lastTs)/60000)}m ago.`);
+    return;
+  }
+  await runScrape('startup');
 })();
 
 // Helper to get chart data for all cards
@@ -145,11 +203,24 @@ app.get('/', (req, res) => {
   }, limit);
 });
 
-app.get('/healthz', (req, res) => {
-  res.json({ ok: true, uptime: process.uptime() });
+app.get('/healthz', async (req, res) => {
+  try {
+    const scrape = await scrapeHealth();
+    res.status(scrape.ok ? 200 : 503).json({ ok: scrape.ok, uptime: process.uptime(), scrape });
+  } catch (err) {
+    res.status(500).json({ ok: false, uptime: process.uptime(), error: 'health_check_failed' });
+  }
 });
 
-// Lightweight endpoint for the client poll — just the latest scrape time.
+app.get('/api/scrape-status', async (req, res) => {
+  try {
+    res.json(await scrapeHealth());
+  } catch (err) {
+    res.status(500).json({ ok: false, error: 'health_check_failed' });
+  }
+});
+
+// Lightweight endpoint for the client poll, just the latest scrape time.
 app.get('/api/last-updated', (req, res) => {
   getPriceHistory(cards[0].name, '10', 1, (err, rows) => {
     if (err) return res.status(500).json({ error: 'db' });
