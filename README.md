@@ -37,7 +37,7 @@ node server.js
 
 The server initializes `prices.db` if it doesn't exist, kicks off one scrape on startup when data is stale, and then scrapes every six hours.
 
-Copy `.env.example` to `.env` and provide the Bright Data API key and active Web Unlocker zone. The `.env` file is ignored by Git.
+Copy `.env.example` to `.env` and provide the Bright Data API key. New free-tier accounts automatically provision the `mcp_unlocker` Web Unlocker zone used by the example. The `.env` file is ignored by Git.
 
 ## How it works
 
