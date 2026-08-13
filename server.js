@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
 const cron = require('node-cron');
@@ -44,7 +46,8 @@ function shortCardName(cardName) {
   return cardName.replace('Charizard Pokemon ', '');
 }
 
-const SCRAPE_STALE_MS = parseInt(process.env.SCRAPE_STALE_MS || String(6 * 60 * 60 * 1000), 10);
+const SCRAPE_STALE_MS = parseInt(process.env.SCRAPE_STALE_MS || String(8 * 60 * 60 * 1000), 10);
+const SCRAPE_CRON = process.env.SCRAPE_CRON || '0 */6 * * *';
 const scrapeState = {
   inProgress: false,
   lastAttemptAt: null,
@@ -128,8 +131,11 @@ async function scrapeHealth() {
 // Initialize DB
 initDB();
 
-logWithTimestamp('check', 'Cron job scheduled!');
-cron.schedule('0 * * * *', () => runScrape('scheduled'));
+if (!cron.validate(SCRAPE_CRON)) {
+  throw new Error(`invalid SCRAPE_CRON: ${SCRAPE_CRON}`);
+}
+logWithTimestamp('check', `Price scrape scheduled: ${SCRAPE_CRON}`);
+cron.schedule(SCRAPE_CRON, () => runScrape('scheduled'));
 
 // Run once on startup, but only if the most recent scrape is older than
 // STARTUP_SCRAPE_MAX_AGE_MS. Avoids hammering pricecharting on PM2 restarts.

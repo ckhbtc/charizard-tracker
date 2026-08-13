@@ -1,4 +1,5 @@
 const PRICE_FETCH_TIMEOUT_MS = parseInt(process.env.PRICE_FETCH_TIMEOUT_MS || '15000', 10);
+const BRIGHT_DATA_API_URL = 'https://api.brightdata.com/request';
 
 const PRICE_HEADERS = {
   'User-Agent':
@@ -108,6 +109,33 @@ function buildFetchUrl(url) {
   return prefix ? `${prefix}${encodeURIComponent(url)}` : url;
 }
 
+function buildBrightDataRequest(url) {
+  const apiKey = process.env.BRIGHT_DATA_API_KEY;
+  if (!apiKey) return null;
+
+  const source = new URL(url);
+  if (source.hostname !== 'www.pricecharting.com') {
+    throw new Error(`unsupported Bright Data host: ${source.hostname}`);
+  }
+
+  const zone = process.env.BRIGHT_DATA_ZONE;
+  if (!zone) {
+    throw new Error('BRIGHT_DATA_ZONE is required when BRIGHT_DATA_API_KEY is set');
+  }
+
+  return {
+    url: process.env.BRIGHT_DATA_API_URL || BRIGHT_DATA_API_URL,
+    options: {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ zone, url, format: 'raw' }),
+    },
+  };
+}
+
 async function fetchCardHtml(url, fetchImpl = globalThis.fetch) {
   if (!fetchImpl) {
     throw new Error('global fetch is unavailable; run on Node 18+');
@@ -116,9 +144,13 @@ async function fetchCardHtml(url, fetchImpl = globalThis.fetch) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PRICE_FETCH_TIMEOUT_MS);
   try {
-    const response = await fetchImpl(buildFetchUrl(url), {
-      headers: PRICE_HEADERS,
-      redirect: 'follow',
+    const brightDataRequest = buildBrightDataRequest(url);
+    const requestUrl = brightDataRequest ? brightDataRequest.url : buildFetchUrl(url);
+    const requestOptions = brightDataRequest
+      ? brightDataRequest.options
+      : { headers: PRICE_HEADERS, redirect: 'follow' };
+    const response = await fetchImpl(requestUrl, {
+      ...requestOptions,
       signal: controller.signal,
     });
     const body = await response.text();
@@ -154,7 +186,9 @@ module.exports = {
   fetchPrices,
   cards,
   buildFetchUrl,
+  buildBrightDataRequest,
   extractPriceCells,
   extractPricesFromHtml,
+  fetchCardHtml,
   parsePrice,
-}; 
+};

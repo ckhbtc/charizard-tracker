@@ -15,6 +15,7 @@
     "url": "https://github.com/ckhbtc/charizard-tracker.git"
   },
   "dependencies": {
+    "dotenv": "^17.2.1",
     "express": "^4.19.2",
     "ejs": "^3.1.9",
     "sqlite3": "^5.1.6",

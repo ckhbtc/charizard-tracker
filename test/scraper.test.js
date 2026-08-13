@@ -1,12 +1,31 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  buildBrightDataRequest,
   buildFetchUrl,
   extractPriceCells,
   extractPricesFromHtml,
   fetchPrices,
+  fetchCardHtml,
   parsePrice,
 } = require('../scraper');
+
+function withEnv(values, fn) {
+  const before = {};
+  for (const [key, value] of Object.entries(values)) {
+    before[key] = process.env[key];
+    if (value == null) delete process.env[key];
+    else process.env[key] = value;
+  }
+  return Promise.resolve()
+    .then(fn)
+    .finally(() => {
+      for (const [key, value] of Object.entries(before)) {
+        if (value == null) delete process.env[key];
+        else process.env[key] = value;
+      }
+    });
+}
 
 function htmlWithPrices(values) {
   return values
@@ -53,14 +72,51 @@ test('fetchPrices records no prices when upstream blocks every card', async () =
   assert.equal(calls.length, 5);
 });
 
-test('buildFetchUrl can route PriceCharting requests through a proxy base', () => {
-  process.env.PRICE_FETCH_BASE_URL = 'http://13.135.99.176/pc-proxy/';
-  try {
+test('buildFetchUrl can route PriceCharting requests through a proxy base', async () => {
+  await withEnv({ PRICE_FETCH_BASE_URL: 'http://proxy.example/pc-proxy/' }, () => {
     assert.equal(
       buildFetchUrl('https://www.pricecharting.com/game/pokemon-base-set/charizard-4'),
-      'http://13.135.99.176/pc-proxy/game/pokemon-base-set/charizard-4'
+      'http://proxy.example/pc-proxy/game/pokemon-base-set/charizard-4'
     );
-  } finally {
-    delete process.env.PRICE_FETCH_BASE_URL;
-  }
+  });
+});
+
+test('buildBrightDataRequest requires a zone when an API key is configured', async () => {
+  await withEnv({ BRIGHT_DATA_API_KEY: 'test-key', BRIGHT_DATA_ZONE: null }, () => {
+    assert.throws(
+      () => buildBrightDataRequest('https://www.pricecharting.com/game/pokemon-base-set/charizard-4'),
+      /BRIGHT_DATA_ZONE is required/
+    );
+  });
+});
+
+test('fetchCardHtml sends PriceCharting through Bright Data Web Unlocker', async () => {
+  await withEnv(
+    {
+      BRIGHT_DATA_API_KEY: 'test-key',
+      BRIGHT_DATA_ZONE: 'test-zone',
+      PRICE_FETCH_BASE_URL: 'http://legacy-proxy.example/pc-proxy',
+    },
+    async () => {
+      const calls = [];
+      const fetchImpl = async (url, options) => {
+        calls.push({ url, options });
+        return { status: 200, text: async () => '<html>unlocked</html>' };
+      };
+
+      const target = 'https://www.pricecharting.com/game/pokemon-base-set/charizard-4';
+      const response = await fetchCardHtml(target, fetchImpl);
+
+      assert.deepEqual(response, { status: 200, body: '<html>unlocked</html>' });
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].url, 'https://api.brightdata.com/request');
+      assert.equal(calls[0].options.method, 'POST');
+      assert.equal(calls[0].options.headers.Authorization, 'Bearer test-key');
+      assert.deepEqual(JSON.parse(calls[0].options.body), {
+        zone: 'test-zone',
+        url: target,
+        format: 'raw',
+      });
+    }
+  );
 });

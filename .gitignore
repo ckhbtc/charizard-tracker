@@ -1,6 +1,9 @@
 node_modules/
 .DS_Store
 *.log
+.env
+.env.*
+!.env.example
 
 # Database + scraped data — kept private (server / local only).
 # We don't republish pricecharting.com data.
