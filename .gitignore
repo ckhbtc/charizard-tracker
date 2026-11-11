@@ -12,5 +12,6 @@ prices_backup.sql
 
 # Local-only — contain server IPs, SSH key paths, and AI assistant config
 CLAUDE.md
+AGENTS.md
 DEPLOYMENT.md
 .claude/
